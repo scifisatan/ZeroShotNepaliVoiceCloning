@@ -13,3 +13,8 @@
 [] currently the goal is to have a voice cloning system, so let's avoid multilingual or multiaccent stuffs
 
 ## TODO: mel_processing & attentions
+
+# 26th January, 2025
+
+- removed unused functions
+- 
