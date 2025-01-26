@@ -41,8 +41,7 @@ class OpenVoiceBaseClass(object):
 
 class BaseSpeakerTTS(OpenVoiceBaseClass):
     language_marks = {
-        "english": "EN",
-        "chinese": "ZH",
+        "nepali": "NP",
     }
 
     @staticmethod
@@ -101,15 +100,7 @@ class BaseSpeakerTTS(OpenVoiceBaseClass):
 class ToneColorConverter(OpenVoiceBaseClass):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-        if kwargs.get('enable_watermark', True):
-            import wavmark
-            self.watermark_model = wavmark.load_model().to(self.device)
-        else:
-            self.watermark_model = None
         self.version = getattr(self.hps, '_version_', "v1")
-
-
 
     def extract_se(self, ref_wav_list, se_save_path=None):
         if isinstance(ref_wav_list, str):
@@ -153,50 +144,9 @@ class ToneColorConverter(OpenVoiceBaseClass):
             spec_lengths = torch.LongTensor([spec.size(-1)]).to(self.device)
             audio = self.model.voice_conversion(spec, spec_lengths, sid_src=src_se, sid_tgt=tgt_se, tau=tau)[0][
                         0, 0].data.cpu().float().numpy()
-            audio = self.add_watermark(audio, message)
+            
             if output_path is None:
                 return audio
             else:
                 soundfile.write(output_path, audio, hps.data.sampling_rate)
-    
-    def add_watermark(self, audio, message):
-        if self.watermark_model is None:
-            return audio
-        device = self.device
-        bits = utils.string_to_bits(message).reshape(-1)
-        n_repeat = len(bits) // 32
 
-        K = 16000
-        coeff = 2
-        for n in range(n_repeat):
-            trunck = audio[(coeff * n) * K: (coeff * n + 1) * K]
-            if len(trunck) != K:
-                print('Audio too short, fail to add watermark')
-                break
-            message_npy = bits[n * 32: (n + 1) * 32]
-            
-            with torch.no_grad():
-                signal = torch.FloatTensor(trunck).to(device)[None]
-                message_tensor = torch.FloatTensor(message_npy).to(device)[None]
-                signal_wmd_tensor = self.watermark_model.encode(signal, message_tensor)
-                signal_wmd_npy = signal_wmd_tensor.detach().cpu().squeeze()
-            audio[(coeff * n) * K: (coeff * n + 1) * K] = signal_wmd_npy
-        return audio
-
-    def detect_watermark(self, audio, n_repeat):
-        bits = []
-        K = 16000
-        coeff = 2
-        for n in range(n_repeat):
-            trunck = audio[(coeff * n) * K: (coeff * n + 1) * K]
-            if len(trunck) != K:
-                print('Audio too short, fail to detect watermark')
-                return 'Fail'
-            with torch.no_grad():
-                signal = torch.FloatTensor(trunck).to(self.device).unsqueeze(0)
-                message_decoded_npy = (self.watermark_model.decode(signal) >= 0.5).int().detach().cpu().numpy().squeeze()
-            bits.append(message_decoded_npy)
-        bits = np.stack(bits).reshape(-1, 8)
-        message = utils.bits_to_string(bits)
-        return message
-    
