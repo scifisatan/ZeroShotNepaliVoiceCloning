@@ -1,6 +1,7 @@
 __pycache__/
 .ipynb_checkpoints/
 processed
+output
 outputs
 outputs_v2
 checkpoints
