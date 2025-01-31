@@ -1,8 +1,6 @@
-
 import torch
-from torch import nn
 from torch.nn import functional as F
-
+from torch import nn
 from torch.nn import Conv1d
 from torch.nn.utils import weight_norm, remove_weight_norm
 
@@ -11,7 +9,7 @@ from openvoice.commons import init_weights, get_padding, fused_add_tanh_sigmoid_
 LRELU_SLOPE = 0.1
 
 
-class WN(torch.nn.Module):
+class WN(nn.Module):
     def __init__(
         self,
         hidden_channels,
@@ -98,8 +96,8 @@ class WN(torch.nn.Module):
         for layer in self.res_skip_layers:
             torch.nn.utils.remove_weight_norm(layer)
 
-#NOTE: USED
-class ResBlock1(torch.nn.Module):
+
+class ResBlock1(nn.Module):
     def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5)):
         super(ResBlock1, self).__init__()
         self.convs1 = nn.ModuleList(
@@ -195,8 +193,8 @@ class ResBlock1(torch.nn.Module):
         for layer in self.convs2:
             remove_weight_norm(layer)
 
-#NOTE: USED
-class ResBlock2(torch.nn.Module):
+
+class ResBlock2(nn.Module):
     def __init__(self, channels, kernel_size=3, dilation=(1, 3)):
         super(ResBlock2, self).__init__()
         self.convs = nn.ModuleList(
@@ -251,7 +249,7 @@ class Log(nn.Module):
             x = torch.exp(x) * x_mask
             return x
 
-#NOTE: USED
+
 class Flip(nn.Module):
     def forward(self, x, *args, reverse=False, **kwargs):
         x = torch.flip(x, [1])
@@ -261,7 +259,7 @@ class Flip(nn.Module):
         else:
             return x
 
-#NOTE: USED
+
 class ResidualCouplingLayer(nn.Module):
     def __init__(
         self,
@@ -317,4 +315,3 @@ class ResidualCouplingLayer(nn.Module):
             x1 = (x1 - m) * torch.exp(-logs) * x_mask
             x = torch.cat([x0, x1], 1)
             return x
-

@@ -41,15 +41,14 @@ class PosteriorEncoder(nn.Module):
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
     def forward(self, x, x_lengths, g=None, tau=1.0):
-        x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(
-            x.dtype
-        )
+        x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
         x = self.pre(x) * x_mask
         x = self.enc(x, x_mask, g=g)
         stats = self.proj(x) * x_mask
         m, logs = torch.split(stats, self.out_channels, dim=1)
         z = (m + torch.randn_like(m) * tau * torch.exp(logs)) * x_mask
         return z, m, logs, x_mask
+
 
 class Generator(torch.nn.Module):
     def __init__(
@@ -127,6 +126,7 @@ class Generator(torch.nn.Module):
         for layer in self.resblocks:
             layer.remove_weight_norm()
 
+
 class ResidualCouplingBlock(nn.Module):
     def __init__(
         self,
@@ -171,6 +171,7 @@ class ResidualCouplingBlock(nn.Module):
                 x = flow(x, x_mask, g=g, reverse=reverse)
         return x
 
+
 class VoiceConverter(nn.Module):
     """
     Synthesizer for Training
@@ -194,7 +195,7 @@ class VoiceConverter(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        #NOTE: Used
+
         self.dec = Generator(
             inter_channels,
             resblock,
@@ -205,7 +206,7 @@ class VoiceConverter(nn.Module):
             upsample_kernel_sizes,
             gin_channels=gin_channels,
         )
-        #NOTE: Used
+
         self.enc_q = PosteriorEncoder(
             spec_channels,
             inter_channels,
@@ -215,7 +216,7 @@ class VoiceConverter(nn.Module):
             16,
             gin_channels=gin_channels,
         )
-        
+
         self.flow = ResidualCouplingBlock(
             inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels
         )
